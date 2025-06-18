@@ -1,7 +1,8 @@
-const { useState, useEffect, useMemo } = React;
+const { useState, useEffect, useMemo, useRef } = React;
 const ChartJS = window.Chart;
 const { RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, ArcElement } = ChartJS;
 const { Radar } = ReactChartjs2;
+const { motion, AnimatePresence } = window.framerMotion;
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, ArcElement);
 
@@ -45,7 +46,7 @@ const TeamPanel = ({ team, teamNumber, teamName, onRemove }) => {
             <div className="team-grid">
                 {team.map(char => (
                     <div key={char.id} className="team-character" onClick={() => onRemove(char, teamNumber)}>
-                        <img src={char.image} alt={char.name} />
+                        <img src={char.image} alt={char.name} title={`Click to remove ${char.name}`}/>
                         <p>{char.name}</p>
                     </div>
                 ))}
@@ -124,6 +125,101 @@ const CharacterModal = ({ character, onClose }) => {
     );
 };
 
+const BattleCharacterStandee = ({ character, teamNumber, isAttacking }) => {
+    const variants = {
+        idle: { y: 0, scale: 1, z: 0 },
+        attacking: { 
+            y: -10, 
+            scale: 1.1, 
+            z: 20,
+            transition: { duration: 0.2, yoyo: Infinity }
+        },
+    };
+
+    return (
+        <motion.div
+            className="battle-character-standee"
+            layoutId={`char-standee-${character.id}`}
+            variants={variants}
+            animate={isAttacking ? "attacking" : "idle"}
+        >
+            <img src={character.image} alt={character.name} className={`char-img team-${teamNumber}`} />
+            <div className="char-name">{character.name}</div>
+            <div className="stand"></div>
+        </motion.div>
+    );
+};
+
+const BattleArena = ({ team1, team2, onBattle, battleLog, isBattling }) => {
+    const [attackingPair, setAttackingPair] = useState(null);
+    const logContainerRef = useRef(null);
+    
+    useEffect(() => {
+        const lastLog = battleLog[battleLog.length - 1];
+        if (lastLog && lastLog.type === 'action') {
+            setAttackingPair({ attacker: lastLog.attacker, defender: lastLog.defender });
+            const timer = setTimeout(() => setAttackingPair(null), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [battleLog]);
+    
+    useEffect(() => {
+        if (logContainerRef.current) {
+            logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+        }
+    }, [battleLog]);
+
+    const renderTeam = (team, teamNumber) => (
+        <div className={`battle-team team-display-${teamNumber}`}>
+            <AnimatePresence>
+                {team.map(char => (
+                     <BattleCharacterStandee 
+                        key={char.id} 
+                        character={char} 
+                        teamNumber={teamNumber}
+                        isAttacking={attackingPair && attackingPair.attacker === char.id}
+                    />
+                ))}
+            </AnimatePresence>
+        </div>
+    );
+
+    return (
+        <div className="section-container battle-arena-section">
+            <h2 className="section-title">Battle Arena</h2>
+            <div className="battle-arena-container">
+                <div className="battle-stage">
+                    {renderTeam(team1, 1)}
+                    <div style={{color: '#fff', fontSize: '2rem', fontWeight: 'bold'}}>VS</div>
+                    {renderTeam(team2, 2)}
+                </div>
+                <div className="battle-controls">
+                    <button className="btn btn-battle" onClick={onBattle} disabled={team1.length === 0 || team2.length === 0 || isBattling}>
+                        {isBattling ? 'Battling...' : 'Start Battle'}
+                    </button>
+                </div>
+                 <AnimatePresence>
+                    {battleLog.length > 0 && (
+                        <motion.div 
+                            className="fight-log-container"
+                            ref={logContainerRef}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: 20 }}
+                        >
+                            {battleLog.map((entry, index) => (
+                                <div key={index} className={`log-entry log-${entry.type} ${entry.type === 'winner' ? 'team-' + entry.team : ''}`}>
+                                    {entry.text}
+                                </div>
+                            ))}
+                        </motion.div>
+                     )}
+                 </AnimatePresence>
+            </div>
+        </div>
+    );
+}
+
 const App = () => {
     const [characters, setCharacters] = useState([]);
     const [team1, setTeam1] = useState([]);
@@ -131,6 +227,7 @@ const App = () => {
     const [activeTeam, setActiveTeam] = useState(1);
     const [battleLog, setBattleLog] = useState([]);
     const [winner, setWinner] = useState(null);
+    const [isBattling, setIsBattling] = useState(false);
     const [selectedCharacter, setSelectedCharacter] = useState(null);
 
     useEffect(() => {
@@ -169,6 +266,7 @@ const App = () => {
     };
     
     const handleRemoveCharacter = (character, teamNumber) => {
+        if (isBattling) return;
         if (teamNumber === 1) {
             setTeam1(team1.filter(c => c.id !== character.id));
         } else {
@@ -176,18 +274,25 @@ const App = () => {
         }
     };
 
-    const simulateBattle = () => {
-        let log = [];
+    const simulateBattle = async () => {
+        setBattleLog([]);
         setWinner(null);
+        setIsBattling(true);
+
+        const wait = (ms) => new Promise(res => setTimeout(res, ms));
+        const addLog = (entry) => setBattleLog(prev => [...prev, entry]);
 
         const team1Score = team1.reduce((sum, char) => sum + char.score, 0);
         const team2Score = team2.reduce((sum, char) => sum + char.score, 0);
-
-        log.push({ type: 'info', text: 'Battle Begins!' });
-        log.push({ type: 'info', text: `Team 1 (Score: ${team1Score}) vs. Team 2 (Score: ${team2Score})` });
+        
+        addLog({ type: 'info', text: 'Battle Begins!' });
+        await wait(1000);
+        addLog({ type: 'info', text: `Team 1 (Score: ${team1Score}) vs. Team 2 (Score: ${team2Score})` });
+        await wait(1500);
 
         for (let i = 1; i <= 5; i++) {
-            log.push({ type: 'round', text: `----- Round ${i} -----`});
+            addLog({ type: 'round', text: `----- Round ${i} -----`});
+            await wait(1000);
             
             const char1 = team1[Math.floor(Math.random() * team1.length)];
             const char2 = team2[Math.floor(Math.random() * team2.length)];
@@ -195,27 +300,37 @@ const App = () => {
             const roll1 = Math.random() * char1.score;
             const roll2 = Math.random() * char2.score;
 
+            let text, attacker, defender;
             if (roll1 > roll2) {
-                log.push({ type: 'action', text: `${char1.name} (Team 1) overpowers ${char2.name} (Team 2)!` });
+                text = `${char1.name} (Team 1) overpowers ${char2.name} (Team 2)!`;
+                attacker = char1.id;
+                defender = char2.id;
             } else if (roll2 > roll1) {
-                log.push({ type: 'action', text: `${char2.name} (Team 2) outsmarts ${char1.name} (Team 1)!` });
+                text = `${char2.name} (Team 2) outsmarts ${char1.name} (Team 1)!`;
+                attacker = char2.id;
+                defender = char1.id;
             } else {
-                log.push({ type: 'action', text: `${char1.name} and ${char2.name} are evenly matched!` });
+                text = `${char1.name} and ${char2.name} are evenly matched!`;
+                attacker = null;
+                defender = null;
             }
+            addLog({ type: 'action', text, attacker, defender });
+            await wait(2000);
         }
         
-        log.push({ type: 'info', text: `----- Final Tally -----`});
+        addLog({ type: 'info', text: `----- Final Tally -----`});
+        await wait(1000);
+
         if (team1Score > team2Score) {
             setWinner(1);
-            log.push({ type: 'winner', team: 1, text: 'Team 1 is victorious!' });
+            addLog({ type: 'winner', team: 1, text: 'Team 1 is victorious!' });
         } else if (team2Score > team1Score) {
             setWinner(2);
-            log.push({ type: 'winner', team: 2, text: 'Team 2 is victorious!' });
+            addLog({ type: 'winner', team: 2, text: 'Team 2 is victorious!' });
         } else {
-            log.push({ type: 'winner', text: 'The battle is a draw!' });
+            addLog({ type: 'winner', text: 'The battle is a draw!' });
         }
-
-        setBattleLog(log);
+        setIsBattling(false);
     };
     
     const getCharacterTeam = (charId) => {
@@ -258,20 +373,13 @@ const App = () => {
                     </div>
                     <div className="section-container">
                          <h2 className="section-title">Battle Arena</h2>
-                         <div className="battle-controls">
-                            <button className="btn btn-battle" onClick={simulateBattle} disabled={team1.length === 0 || team2.length === 0}>
-                                Start Battle
-                            </button>
-                         </div>
-                         {battleLog.length > 0 && (
-                            <div className="battle-log">
-                                {battleLog.map((entry, index) => (
-                                    <div key={index} className={`battle-log-entry ${entry.type} ${entry.type === 'winner' ? 'team' + entry.team : ''}`}>
-                                        {entry.text}
-                                    </div>
-                                ))}
-                            </div>
-                         )}
+                         <BattleArena 
+                            team1={team1} 
+                            team2={team2} 
+                            onBattle={simulateBattle}
+                            battleLog={battleLog}
+                            isBattling={isBattling}
+                        />
                     </div>
                 </div>
             </div>

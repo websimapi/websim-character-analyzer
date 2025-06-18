@@ -186,6 +186,101 @@ header p {
 .team1-title { color: var(--green-color); }
 .team2-title { color: var(--red-color); }
 
+.battle-arena-section {
+    position: relative;
+    padding: 0;
+    overflow: hidden;
+}
+
+.battle-arena-container {
+    background-image: url(./parchment_bg.png);
+    background-size: cover;
+    background-position: center;
+    padding: 2rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.battle-stage {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+    min-height: 250px;
+    perspective: 800px;
+}
+
+.battle-team {
+    width: 45%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.team-display-2 {
+    flex-direction: row-reverse;
+}
+
+.battle-character-standee {
+    position: relative;
+    width: 80px;
+    height: 100px;
+    cursor: pointer;
+    transition: transform 0.3s ease;
+}
+
+.battle-character-standee:hover {
+    transform: translateY(-5px) scale(1.05);
+}
+
+.battle-character-standee .char-img {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color);
+    position: relative;
+    z-index: 2;
+    filter: drop-shadow(3px 3px 5px rgba(0,0,0,0.5));
+}
+
+.team-1 .char-img { border-color: var(--green-color); }
+.team-2 .char-img { border-color: var(--red-color); }
+
+.battle-character-standee .char-name {
+    background: #eaddc7;
+    color: #4a3c2a;
+    font-family: 'Georgia', serif;
+    font-size: 0.8rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 3px;
+    text-align: center;
+    position: absolute;
+    bottom: 25px;
+    left: 50%;
+    transform: translateX(-50%);
+    white-space: nowrap;
+    z-index: 3;
+    box-shadow: 1px 1px 3px rgba(0,0,0,0.3);
+}
+
+.battle-character-standee .stand {
+    width: 70px;
+    height: 20px;
+    background-color: #5a3a22;
+    border: 2px solid #3d2a1a;
+    border-radius: 3px;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%) rotateX(60deg);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.5);
+}
+
 .battle-controls {
     display: flex;
     flex-direction: column;
@@ -257,6 +352,39 @@ header p {
     color: var(--red-color);
     background-color: rgba(218, 54, 51, 0.1);
 }
+
+.fight-log-container {
+    background-color: rgba(234, 221, 199, 0.8);
+    border: 1px solid #c8b79a;
+    color: #4a3c2a;
+    font-family: 'Georgia', serif;
+    border-radius: 6px;
+    padding: 1rem;
+    height: 150px;
+    overflow-y: auto;
+    box-shadow: inset 0 0 5px rgba(0,0,0,0.2);
+}
+
+.log-entry {
+    padding: 0.2rem 0;
+    border-bottom: 1px dashed #c8b79a;
+}
+.log-entry:last-child {
+    border-bottom: none;
+}
+.log-round {
+    font-weight: bold;
+    color: #8c6f46;
+    margin-top: 0.5rem;
+}
+.log-winner {
+    font-weight: bold;
+    font-size: 1.1em;
+    text-align: center;
+    padding: 0.5rem;
+}
+.log-winner.team-1 { color: var(--green-color); }
+.log-winner.team-2 { color: var(--red-color); }
 
 
 /* Modal */
@@ -349,4 +477,3 @@ header p {
     width: 250px;
     height: 250px;
 }
-
