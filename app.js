@@ -1,6 +1,7 @@
 const { useState, useEffect, useMemo } = React;
-const { Chart: ChartJS, RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, ArcElement } = ChartJS_2;
-const { Radar } = ReactChartJS2;
+const ChartJS = window.Chart;
+const { RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, ArcElement } = ChartJS;
+const { Radar } = ReactChartjs2;
 
 ChartJS.register(RadialLinearScale, PointElement, LineElement, Filler, Tooltip, Legend, ArcElement);
 
@@ -280,4 +281,3 @@ const App = () => {
 };
 
 ReactDOM.render(<App />, document.getElementById('root'));
-
